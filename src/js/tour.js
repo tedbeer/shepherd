@@ -13,7 +13,7 @@ export class Tour extends Evented {
   /**
    *
    * @param {Object} options The options for the tour
-   * @param {Object} options.defaults Default options for Steps created through `addStep`
+   * @param {Object} options.defaults Default options for Steps ({@link Step#constructor}), created through `addStep`
    * @param {Step[]} options.steps An array of Step instances to initialize the tour with
    * @returns {Tour}
    */
