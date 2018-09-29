@@ -14,6 +14,7 @@ export class Tour extends Evented {
    *
    * @param {Object} options The options for the tour
    * @param {Object} options.defaultStepOptions Default options for Steps created through `addStep`
+   * @param {Object} options.defaultTooltipOptions Default options for Steps created through `addStep`
    * @param {Step[]} options.steps An array of Step instances to initialize the tour with
    * @returns {Tour}
    */
@@ -52,21 +53,24 @@ export class Tour extends Evented {
    * @return {Step} The newly added step
    */
   addStep(arg1, arg2) {
-    let name, step;
+    let name, stepOptions;
 
     // If we just have one argument, we can assume it is an object of step options, with an id
     if (isUndefined(arg2)) {
-      step = arg1;
+      stepOptions = arg1;
     } else {
       name = arg1;
-      step = arg2;
+      stepOptions = arg2;
     }
 
-    if (!(step instanceof Step)) {
-      step = this.setupStep(step, name);
-    } else {
+    let step;
+
+    if (stepOptions instanceof Step) {
+      step = stepOptions;
       step.tour = this;
     }
+
+    step = this.setupStep(stepOptions, name);
 
     this.steps.push(step);
     return step;

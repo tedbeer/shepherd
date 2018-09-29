@@ -120,7 +120,7 @@ module.exports = [{
         server: {
           baseDir: 'docs/welcome',
           routes: {
-            '/shepherd/dist/js/popper.js': 'dist/js/popper.js',
+            // '/shepherd/dist/js/popper.js': 'dist/js/popper.js',
             '/shepherd/dist/js/shepherd.js': 'dist/js/shepherd.js',
             '/shepherd/docs/welcome/js/prism.js': 'docs/welcome/js/prism.js',
             '/shepherd/docs/welcome/js/welcome.js': 'docs/welcome/js/welcome.js',
@@ -156,11 +156,11 @@ module.exports.push({
     libraryTarget: 'umd',
     globalObject: 'this'
   },
-  resolve: {
-    alias: {
-      'popper.js': 'popper.js/dist/umd/popper.js'
-    }
-  },
+  // resolve: {
+  //   alias: {
+  //     'popper.js': 'popper.js/dist/umd/popper.js'
+  //   }
+  // },
   module: {
     rules: [
       {
@@ -179,14 +179,14 @@ module.exports.push({
       }
     ]
   },
-  externals: {
-    'popper.js': {
-      root: 'Popper',
-      commonjs2: 'popper.js',
-      commonjs: 'popper.js',
-      amd: 'popper.js'
-    }
-  },
+  // externals: {
+  //   'popper.js': {
+  //     root: 'Popper',
+  //     commonjs2: 'popper.js',
+  //     commonjs: 'popper.js',
+  //     amd: 'popper.js'
+  //   }
+  // },
   optimization: {
     minimizer: [
       new UglifyJsPlugin({
@@ -196,13 +196,13 @@ module.exports.push({
     ]
   },
   plugins: [
-    new CopyWebpackPlugin([
-      {
-        from: './node_modules/popper.js/dist/umd/',
-        to: 'js',
-        flatten: true
-      }
-    ]),
+    // new CopyWebpackPlugin([
+    //   {
+    //     from: './node_modules/popper.js/dist/umd/',
+    //     to: 'js',
+    //     flatten: true
+    //   }
+    // ]),
     new webpack.BannerPlugin(banner),
     new LodashModuleReplacementPlugin
   ]

@@ -37,7 +37,7 @@ describe('Step', () => {
       text: 'Another Step'
     });
 
-    // Add more steps for total _setUpButtons coverage
+    // Add more steps for total _setupButtonOpts coverage
     instance.addStep('test3', {
       buttons: {
         text: 'Next',
@@ -334,13 +334,13 @@ describe('Step', () => {
     });
   });
 
-  describe('getAttachTo()', function(){
+  describe('parseAttachTo()', function(){
     it('fails if element does not exist', function(){
       const step = new Step({}, {
         attachTo: { element: '.scroll-test', on: 'center' }
       });
 
-      const { element } = step.getAttachTo();
+      const { element } = step.parseAttachTo();
       assert.notOk(element);
     });
   });

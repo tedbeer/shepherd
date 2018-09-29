@@ -8,7 +8,7 @@ import { forOwn, isString, isUndefined } from 'lodash';
 function _setupAdvanceOnHandler(selector) {
   return (e) => {
     if (this.isOpen()) {
-      const targetIsEl = this.el && e.target === this.el;
+      const targetIsEl = this.contentElem && e.target === this.contentElem;
       const targetIsSelector = !isUndefined(selector) && e.target.matches(selector);
       if (targetIsSelector || targetIsEl) {
         this.tour.next();

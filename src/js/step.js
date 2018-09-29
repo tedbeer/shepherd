@@ -10,7 +10,7 @@ import {
 import { Evented } from './evented.js';
 import 'element-matches';
 import { bindAdvance, bindButtonEvents, bindCancelLink, bindMethods } from './bind.js';
-import { createFromHTML, parsePosition, setupPopper } from './utils.js';
+import { createFromHTML, setupTooltipElem, parseAttachTo } from './utils.js';
 
 /**
  * Creates incremented ID for each newly created step
@@ -102,7 +102,7 @@ export class Step extends Evented {
       'destroy',
       'hide',
       'isOpen',
-      'render',
+      'setupElements',
       'scrollTo',
       'show'
     ]);
@@ -110,7 +110,9 @@ export class Step extends Evented {
     this.bindAdvance = bindAdvance.bind(this);
     this.bindButtonEvents = bindButtonEvents.bind(this);
     this.bindCancelLink = bindCancelLink.bind(this);
-    this.setupPopper = setupPopper.bind(this);
+    this.setupTooltipElem = setupTooltipElem.bind(this);
+    this.parseAttachTo = parseAttachTo.bind(this);
+
     return this;
   }
 
@@ -189,7 +191,8 @@ export class Step extends Evented {
    * @private
    * @param {HTMLElement} element The element to attach
    */
-  _attach(element) {
+  _attach() {
+    const element = this.tooltipElem;
     const { renderLocation } = this.options;
 
     if (renderLocation) {
@@ -207,9 +210,9 @@ export class Step extends Evented {
    * Creates Shepherd element for step based on options
    *
    * @private
-   * @return {HTMLElement} The DOM element for the step
+   * @return {HTMLElement} The DOM element for the step tooltip
    */
-  _createElement() {
+  createTooltipContent() {
     const content = document.createElement('div');
     const classes = this.options.classes || '';
     const element = createFromHTML(`<div class='${classes}' data-id='${this.id}' id="${this.options.idAttribute}"}>`);
@@ -251,30 +254,6 @@ export class Step extends Evented {
   }
 
   /**
-   * Passes `options.attachTo` to `parsePosition` to get the correct `attachTo` format
-   * @returns {({} & {element, on}) | ({})}
-   */
-  getAttachTo() {
-    const opts = parsePosition(this.options.attachTo) || {};
-    const returnOpts = Object.assign({}, opts);
-
-    if (isString(opts.element)) {
-      // Can't override the element in user opts reference because we can't
-      // guarantee that the element will exist in the future.
-      try {
-        returnOpts.element = document.querySelector(opts.element);
-      } catch(e) {
-        // TODO
-      }
-      if (!returnOpts.element) {
-        console.error(`The element for this Shepherd step was not found ${opts.element}`);
-      }
-    }
-
-    return returnOpts;
-  }
-
-  /**
    * Cancel the tour
    * Triggers the `cancel` event
    */
@@ -297,15 +276,15 @@ export class Step extends Evented {
    * Triggers `destroy` event
    */
   destroy() {
-    if (isElement(this.el) && this.el.parentNode) {
-      this.el.parentNode.removeChild(this.el);
-      delete this.el;
+    if (isElement(this.contentElem) && this.contentElem.parentNode) {
+      this.contentElem.parentNode.removeChild(this.contentElem);
+      this.contentElem = null;
     }
 
-    if (this.popper) {
-      this.popper.destroy();
+    if (this.tooltipElem) {
+      this.tooltipElem.destroy();
+      this.tooltipElem = null;
     }
-    this.popper = null;
 
     this.trigger('destroy');
   }
@@ -316,10 +295,10 @@ export class Step extends Evented {
   hide() {
     this.trigger('before-hide');
 
-    if (this.el) {
-      this.el.hidden = true;
+    if (this.contentElem) {
+      this.contentElem.hidden = true;
       // We need to manually set styles for < IE11 support
-      this.el.style.display = 'none';
+      this.contentElem.style.display = 'none';
     }
 
     document.body.removeAttribute('data-shepherd-step');
@@ -328,10 +307,10 @@ export class Step extends Evented {
       this.target.classList.remove('shepherd-enabled', 'shepherd-target');
     }
 
-    if (this.popper) {
-      this.popper.destroy();
+    if (this.tooltipElem) {
+      this.tooltipElem.destroy();
     }
-    this.popper = null;
+    this.tooltipElem = null;
 
     this.trigger('hide');
   }
@@ -341,25 +320,44 @@ export class Step extends Evented {
    * @return {*|boolean} True if the step is open and visible
    */
   isOpen() {
-    return this.el && !this.el.hidden;
+    return this.contentElem && !this.contentElem.hidden;
   }
 
+  // /**
+  //  * Create the element and set up the popper instance
+  //  */
+  // render() {
+  //   if (!isUndefined(this.contentElem)) {
+  //     this.destroy();
+  //   }
+  //   this.contentElem = this.createTooltipContent();
+
+  //   if (this.options.advanceOn) {
+  //     this.bindAdvance();
+  //   }
+
+  //   this._attach();
+
+  //   this.setupTooltipElem();
+  // }
+
   /**
-   * Create the element and set up the popper instance
+   * Create the element and set up the tippy instance
    */
-  render() {
-    if (!isUndefined(this.el)) {
+  setupElements() {
+    if (!isUndefined(this.contentElem)) {
       this.destroy();
     }
-    this.el = this._createElement();
+
+    this.contentElem = this.createTooltipContent();
 
     if (this.options.advanceOn) {
       this.bindAdvance();
     }
 
-    this._attach(this.el);
-
-    this.setupPopper();
+    this.setupTooltipElem();
+    debugger;
+    // this._attach();
   }
 
   /**
@@ -367,7 +365,7 @@ export class Step extends Evented {
    * scrollIntoView call.
    */
   scrollTo() {
-    const { element } = this.getAttachTo();
+    const { element } = this.parseAttachTo();
 
     if (isFunction(this.options.scrollToHandler)) {
       this.options.scrollToHandler(element);
@@ -391,7 +389,7 @@ export class Step extends Evented {
       this.on(event, handler, this);
     });
 
-    this._setUpButtons();
+    this._setupButtonOpts();
   }
 
   /**
@@ -413,7 +411,7 @@ export class Step extends Evented {
    *
    * @private
    */
-  _setUpButtons() {
+  _setupButtonOpts() {
     const { buttons } = this.options;
     if (buttons) {
       const buttonsAreDefault = isUndefined(buttons) || isEmpty(buttons);
@@ -440,17 +438,18 @@ export class Step extends Evented {
   _show() {
     this.trigger('before-show');
 
-    if (!this.el) {
-      this.render();
+    if (!this.contentElem) {
+      // this.render();
+      this.setupElements();
     }
 
-    this.el.hidden = false;
+    this.contentElem.hidden = false;
     // We need to manually set styles for < IE11 support
-    this.el.style.display = 'block';
+    this.contentElem.style.display = 'block';
 
     document.body.setAttribute('data-shepherd-step', this.id);
 
-    this.setupPopper();
+    // this.setupTooltipElem();
 
     if (this.options.scrollTo) {
       setTimeout(() => {
@@ -458,6 +457,7 @@ export class Step extends Evented {
       });
     }
 
+    this.tooltipElem.show();
     this.trigger('show');
   }
 }

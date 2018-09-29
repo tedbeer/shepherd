@@ -1,5 +1,6 @@
-import { isObjectLike, isUndefined, zipObject } from 'lodash';
-import Popper from 'popper.js';
+import { isString, isObjectLike, isUndefined, zipObject } from 'lodash';
+// import Popper from 'popper.js';
+import tippy from 'tippy.js';
 
 /**
  * TODO rewrite the way items are being added to use more performant documentFragment code
@@ -17,16 +18,16 @@ export function createFromHTML(html) {
  * @param {Object|String} position Either a string or object denoting the selector and position for attachment
  * @return {Object} The object with `element` and `on` for the step
  */
-export function parsePosition(position) {
-  if (isObjectLike(position)) {
-    if (position.hasOwnProperty('element') && position.hasOwnProperty('on')) {
-      return position;
+export function _parseAttachToOpts(opts) {
+  if (isObjectLike(opts)) {
+    if (opts.hasOwnProperty('element') && opts.hasOwnProperty('on')) {
+      return opts;
     }
     return null;
   }
 
   const positionRe = /^(.+) (top|left|right|bottom|center)$/;
-  const matches = positionRe.exec(position);
+  const matches = positionRe.exec(opts);
 
   if (!matches) {
     return null;
@@ -55,74 +56,137 @@ export function parseShorthand(obj, props) {
 }
 
 /**
- * Determines options for Popper and initializes the Popper instance
+ * Determines options for the Tippy.js tooltip and initializes it.
  */
-export function setupPopper() {
-  if (isUndefined(Popper)) {
-    throw new Error('Using the attachment feature of Shepherd requires the Popper.js library');
+export function setupTooltipElem() {
+  debugger;
+  if (isUndefined(tippy)) {
+    throw new Error('Using the attachment feature of Shepherd requires the Tippy.js library');
   }
 
-  const opts = this.getAttachTo();
-  opts.modifiers = opts.modifiers || {};
-  let attachment = opts.on || 'right';
-  opts.positionFixed = false;
+  const attachToOpts = this.parseAttachTo();
 
-  if (isUndefined(opts.element)) {
-    attachment = 'top';
-    _setupCenteredPopper(opts);
+  attachToOpts.positionFixed = false;
+
+  const popperOptions = _makePopperOptions.call(this, attachToOpts);
+  const tippyOptions = _makeTippyOptions.call(this, attachToOpts, popperOptions);
+
+  if (this.tooltipElem) {
+    this.tooltipElem.destroy();
   }
 
-  if (this.popper) {
-    this.popper.destroy();
-  }
+  this.contentElem.classList.add('shepherd-element');
 
-  this.el.classList.add('shepherd-element');
-  const popperOpts = _mergePopperOptions.call(this, attachment, opts);
-  this.popper = new Popper(opts.element, this.el, popperOpts);
+  // const popperOptions = _makePopperOptions.call(this, attachment, opts);
+  // this.popper = new Popper(opts.element, this.contentElem, popperOptions);
+  debugger;
+  this.tooltipElem = tippy.one(attachToOpts.element, tippyOptions);
 
-  this.target = opts.element;
+  this.target = attachToOpts.element;
   this.target.classList.add('shepherd-enabled', 'shepherd-target');
 }
 
 /**
  * Merge the global popperOptions, and the local opts
- * @param {String} attachment The direction for attachment
- * @param {Object} opts The local options
- * @return {Object} The merged popperOpts object
+ * @param {Object} baseAttachToOptions The local options
+ * @return {Object} The merged popperOptions object
  * @private
  */
-function _mergePopperOptions(attachment, opts) {
+function _makePopperOptions(baseAttachToOptions = {}) {
   return Object.assign({}, {
-    placement: attachment,
-    arrowElement: this.el.querySelector('.popper__arrow'),
-    modifiers: opts.modifiers,
-    positionFixed: opts.positionFixed
+    placement: baseAttachToOptions.on || 'right',
+    arrowElement: this.contentElem.querySelector('.popper__arrow'),
+    positionFixed: !!(baseAttachToOptions.positionFixed),
   }, this.options.popperOptions);
 }
 
 /**
- * Sets up a popper centered on the screen, when there is no attachTo element
- * @param {Object} opts The config object
- * @return {*}
- * @private
+ * Generates the hash of options that will be passed to `Tippy`.
+ *
+ * @param {Object} stepOptions The options for a given `Step` instance.
+ * @returns {Object}
  */
-function _setupCenteredPopper(opts) {
-  opts.element = document.body;
+function _makeTippyOptions(baseAttachToOptions, popperOptions) {
+  if (!baseAttachToOptions.element) {
+    return _makeCenteredTippyOptions();
+  }
 
-  opts.modifiers = Object.assign({
-    computeStyle: {
-      enabled: true,
-      fn(data) {
-        data.styles = Object.assign({}, data.styles, {
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)'
-        });
+  return {
+    content: this.contentElem,
+    popperOptions: popperOptions,
 
-        return data;
-      }
+    // TODO: Set Tippy defaults somewhere (https://atomiks.github.io/tippyjs/#customizing-tooltips-default-config)
+    trigger: 'manual',
+    animation: this.options.animation || 'fade',
+    delay: this.options.delay || 0,
+    flip: !!(this.options.flip),
+    onShow() {
+      console.log('Tippy element -- `onShow`');
+    },
+    onShown() {
+      console.log('Tippy element -- `onShown`');
+    },
+  };
+}
+
+
+function _makeCenteredTippyOptions() {
+  return {
+    placement: 'top',
+  };
+}
+
+// /**
+//  * Sets up a popper centered on the screen, when there is no attachTo element
+//  * @param {Object} opts The config object
+//  * @return {*}
+//  * @private
+//  */
+// function _setupCenteredPopper(opts) {
+//   opts.element = document.body;
+//   opts.on = 'top';
+
+//   opts.modifiers = Object.assign({
+//     computeStyle: {
+//       enabled: true,
+//       fn(data) {
+//         data.styles = Object.assign({}, data.styles, {
+//           left: '50%',
+//           top: '50%',
+//           transform: 'translate(-50%, -50%)'
+//         });
+
+//         return data;
+//       }
+//     }
+//   }, opts.modifiers);
+
+//   opts.positionFixed = true;
+// }
+
+
+/**
+ * Passes `options.attachTo` to `_parseAttachToOpts` to get the correct `attachTo` format
+ * @returns {({} & {element, on}) | ({})}
+ * `element` is a qualified HTML Element
+ * `on` is a string position value
+ */
+export function parseAttachTo() {
+  const options = _parseAttachToOpts(this.options.attachTo) || {};
+  const returnOpts = Object.assign({}, options);
+
+  if (isString(options.element)) {
+    // Can't override the element in user opts reference because we can't
+    // guarantee that the element will exist in the future.
+    try {
+      returnOpts.element = document.querySelector(options.element);
+    } catch(e) {
+      // TODO
     }
-  }, opts.modifiers);
+    if (!returnOpts.element) {
+      console.error(`The element for this Shepherd step was not found ${opts.element}`);
+    }
+  }
 
-  opts.positionFixed = true;
+  return returnOpts;
 }
