@@ -2,6 +2,8 @@ import { isFunction, isNumber, isString, isUndefined } from 'lodash';
 import { Evented } from './evented.js';
 import { Step } from './step.js';
 import { bindMethods } from './bind.js';
+import tippy from 'tippy.js';
+import { defaults as tooltipDefaults } from './utils/tooltip-defaults';
 
 const Shepherd = new Evented();
 
@@ -14,7 +16,6 @@ export class Tour extends Evented {
    *
    * @param {Object} options The options for the tour
    * @param {Object} options.defaultStepOptions Default options for Steps created through `addStep`
-   * @param {Object} options.defaultTooltipOptions Default options for Steps created through `addStep`
    * @param {Step[]} options.steps An array of Step instances to initialize the tour with
    * @returns {Tour}
    */
@@ -40,6 +41,8 @@ export class Tour extends Evented {
         });
       })(event);
     });
+
+    this._setTooltipDefaults();
 
     return this;
   }
@@ -213,6 +216,7 @@ export class Tour extends Evented {
    * @param {Boolean} forward True if we are going forward, false if backward
    */
   show(key = 0, forward = true) {
+    debugger;
     this._setupActiveTour();
 
     const step = isString(key) ? this.getById(key) : this.steps[key];
@@ -272,6 +276,14 @@ export class Tour extends Evented {
     const index = this.steps.indexOf(step);
     const nextIndex = forward ? index + 1 : index - 1;
     this.show(nextIndex, forward);
+  }
+
+  _setTooltipDefaults() {
+    if (isUndefined(tippy)) {
+      throw new Error('Using the attachment feature of Shepherd requires the Tippy.js library');
+    }
+
+    tippy.setDefaults(tooltipDefaults);
   }
 }
 

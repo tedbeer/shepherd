@@ -64,7 +64,7 @@ export class Step extends Evented {
    * ```
    * @param {string} options.buttons.button.text The HTML text of the button
    * @param {string} options.classes Extra classes to add to the step. `shepherd-theme-arrows` will give you our theme.
-   * @param {Object} options.popperOptions Extra options to pass to popper.js
+   * @param {Object} options.tippyOptions Extra [options to pass to tippy.js]{@link https://atomiks.github.io/tippyjs/#all-options}
    * @param {HTMLElement|string} options.renderLocation An `HTMLElement` or selector string of the element you want the
    * tour step to render in. Most of the time, you will not need to pass anything, and it will default to `document.body`,
    * but this is needed for `<dialog>` and might as well support passing anything.
@@ -213,9 +213,14 @@ export class Step extends Evented {
    * @return {HTMLElement} The DOM element for the step tooltip
    */
   createTooltipContent() {
-    const content = document.createElement('div');
     const classes = this.options.classes || '';
-    const element = createFromHTML(`<div class='${classes}' data-id='${this.id}' id="${this.options.idAttribute}"}>`);
+    const element = createFromHTML(`<div class='${classes}' data-id='${this.id}'>`);
+
+    if (this.options.idAttribute) {
+      element.setAttribute('id', this.options.idAttribute);
+    }
+
+    const content = document.createElement('div');
     const header = document.createElement('header');
 
     if (this.options.title) {
@@ -276,9 +281,9 @@ export class Step extends Evented {
    * Triggers `destroy` event
    */
   destroy() {
-    if (isElement(this.contentElem) && this.contentElem.parentNode) {
-      this.contentElem.parentNode.removeChild(this.contentElem);
-      this.contentElem = null;
+    if (isElement(this.el) && this.el.parentNode) {
+      this.el.parentNode.removeChild(this.el);
+      this.el = null;
     }
 
     if (this.tooltipElem) {
@@ -295,10 +300,10 @@ export class Step extends Evented {
   hide() {
     this.trigger('before-hide');
 
-    if (this.contentElem) {
-      this.contentElem.hidden = true;
+    if (this.el) {
+      this.el.hidden = true;
       // We need to manually set styles for < IE11 support
-      this.contentElem.style.display = 'none';
+      this.el.style.display = 'none';
     }
 
     document.body.removeAttribute('data-shepherd-step');
@@ -308,9 +313,8 @@ export class Step extends Evented {
     }
 
     if (this.tooltipElem) {
-      this.tooltipElem.destroy();
+      this.tooltipElem.hide();
     }
-    this.tooltipElem = null;
 
     this.trigger('hide');
   }
@@ -320,17 +324,17 @@ export class Step extends Evented {
    * @return {*|boolean} True if the step is open and visible
    */
   isOpen() {
-    return this.contentElem && !this.contentElem.hidden;
+    return this.el && !this.el.hidden;
   }
 
   // /**
   //  * Create the element and set up the popper instance
   //  */
   // render() {
-  //   if (!isUndefined(this.contentElem)) {
+  //   if (!isUndefined(this.el)) {
   //     this.destroy();
   //   }
-  //   this.contentElem = this.createTooltipContent();
+  //   this.el = this.createTooltipContent();
 
   //   if (this.options.advanceOn) {
   //     this.bindAdvance();
@@ -345,18 +349,18 @@ export class Step extends Evented {
    * Create the element and set up the tippy instance
    */
   setupElements() {
-    if (!isUndefined(this.contentElem)) {
+    if (!isUndefined(this.el)) {
       this.destroy();
     }
 
-    this.contentElem = this.createTooltipContent();
+    this.el = this.createTooltipContent();
 
     if (this.options.advanceOn) {
       this.bindAdvance();
     }
 
+
     this.setupTooltipElem();
-    debugger;
     // this._attach();
   }
 
@@ -438,14 +442,14 @@ export class Step extends Evented {
   _show() {
     this.trigger('before-show');
 
-    if (!this.contentElem) {
+    if (!this.el) {
       // this.render();
       this.setupElements();
     }
 
-    this.contentElem.hidden = false;
+    this.el.hidden = false;
     // We need to manually set styles for < IE11 support
-    this.contentElem.style.display = 'block';
+    this.el.style.display = 'block';
 
     document.body.setAttribute('data-shepherd-step', this.id);
 

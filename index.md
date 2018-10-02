@@ -206,7 +206,7 @@ when: {
   }
 }
 ```
-- `popperOptions`: Extra options to pass to [popper.js](https://github.com/FezVrasta/popper.js)
+- `tippyOptions`: Extra [options to pass to `Tippy.js`](https://atomiks.github.io/tippyjs/#all-options)
 
 ##### Step Methods
 
