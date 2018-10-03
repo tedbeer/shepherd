@@ -7,5 +7,5 @@ export const defaults = {
   animateFill: false, // https://atomiks.github.io/tippyjs/#animate-fill-option
   interactive: true,  // https://atomiks.github.io/tippyjs/#interactive-option
   hideOnClick: 'toggle', // https://atomiks.github.io/tippyjs/#hide-on-click-option
-  multiple: true,
+  multiple: true,  // https://atomiks.github.io/tippyjs/#multiple-option
 };

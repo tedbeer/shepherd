@@ -69,18 +69,13 @@ export function setupTooltipElem() {
 
   const attachToOpts = this.parseAttachTo();
 
-  attachToOpts.positionFixed = false;
+  this.tooltipElem = _makeTippyInstance.call(this, attachToOpts);
 
-  const tippyOptions = _makeTippyOptions.call(this, attachToOpts);
+  this.target = attachToOpts.element || document.body;
+  this.target.classList.add('shepherd-enabled', 'shepherd-target');
 
   this.el.classList.add('shepherd-element');
-
-  this.tooltipElem = tippy.one(attachToOpts.element, tippyOptions);
-
-  this.target = attachToOpts.element;
-  this.target.classList.add('shepherd-enabled', 'shepherd-target');
 }
-
 
 /**
  * Generates the hash of options that will be passed to `Tippy`.
@@ -89,21 +84,17 @@ export function setupTooltipElem() {
  * @return {Object} The final tippy options  object
  * @private
  */
-function _makeTippyOptions(baseAttachToOptions) {
-  if (!baseAttachToOptions.element) {
-    return _makeCenteredTippyOptions();
-  }
-
+function _makeAttachedTippyOptions(baseAttachToOptions) {
   const resultingTippyOptions = {
     content: this.el,
+    placement: baseAttachToOptions.on || 'right',
     ...this.options.tippyOptions
   };
 
   // Build the proper settings for tippyOptions.popperOptions (https://atomiks.github.io/tippyjs/#popper-options-option)
   const popperOptsToMerge = {
-    placement: baseAttachToOptions.on || 'right',
     arrowElement: this.el.querySelector('.popper__arrow'),
-    positionFixed: !!(baseAttachToOptions.positionFixed),
+    positionFixed: true,
   };
 
   if (this.options.tippyOptions && this.options.tippyOptions.popperOptions) {
@@ -115,42 +106,56 @@ function _makeTippyOptions(baseAttachToOptions) {
   return resultingTippyOptions;
 }
 
-// TODO: Implement...
-function _makeCenteredTippyOptions() {
-  debugger;
-  return {
+function _makeCenteredTippy(baseAttachToOptions) {
+  const tippyOptions = {
+    content: this.el,
     placement: 'top',
+    ...this.options.tippyOptions
   };
+
+  const popperOptsToMerge = {
+    arrowElement: this.el.querySelector('.popper__arrow'),
+    positionFixed: true,
+  };
+
+  tippyOptions.popperOptions = tippyOptions.popperOptions || {};
+
+  const finalPopperOptions = Object.assign(
+    {},
+    popperOptsToMerge,
+    tippyOptions.popperOptions,
+    {
+      modifiers: Object.assign({
+        computeStyle: {
+          enabled: true,
+          fn(data) {
+            data.styles = Object.assign({}, data.styles, {
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)'
+            });
+
+            return data;
+          }
+        }
+      }, tippyOptions.popperOptions.modifiers)
+    }
+  );
+
+  tippyOptions.popperOptions = finalPopperOptions;
+
+  return tippy.one(document.body, tippyOptions);
 }
 
-// /**
-//  * Sets up a popper centered on the screen, when there is no attachTo element
-//  * @param {Object} opts The config object
-//  * @return {*}
-//  * @private
-//  */
-// function _setupCenteredPopper(opts) {
-//   opts.element = document.body;
-//   opts.on = 'top';
+function _makeTippyInstance(baseAttachToOptions) {
+  if (!baseAttachToOptions.element) {
+    return _makeCenteredTippy.call(this, baseAttachToOptions);
+  }
 
-//   opts.modifiers = Object.assign({
-//     computeStyle: {
-//       enabled: true,
-//       fn(data) {
-//         data.styles = Object.assign({}, data.styles, {
-//           left: '50%',
-//           top: '50%',
-//           transform: 'translate(-50%, -50%)'
-//         });
+  const tippyOptions = _makeAttachedTippyOptions.call(this, baseAttachToOptions);
 
-//         return data;
-//       }
-//     }
-//   }, opts.modifiers);
-
-//   opts.positionFixed = true;
-// }
-
+  return tippy.one(baseAttachToOptions.element, tippyOptions);
+}
 
 /**
  * Passes `options.attachTo` to `_parseAttachToOpts` to get the correct `attachTo` format
